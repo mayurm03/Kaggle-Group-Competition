@@ -1,13 +1,12 @@
 import numpy as np
 #import matplotlib.pyplot as plt'
 import pandas as pd
-from sklearn import metrics
+#from sklearn import metrics
 from sklearn import preprocessing
 
 #importing dataset
-dataset_train = pd.read_csv('tcd-ml-1920-group-income-train.csv')
-dataset_predict = pd.read_csv('tcd-ml-1920-group-income-test.csv')
-
+X = pd.read_csv('tcd-ml-1920-group-income-train.csv')
+X1 = pd.read_csv('tcd-ml-1920-group-income-test.csv')
 
 #Rename columns to not contain spaces
 newnames = {"Year of Record" : "Year",
@@ -24,10 +23,8 @@ newnames = {"Year of Record" : "Year",
            "Total Yearly Income [EUR]" : "Income"
           }
 
-
-dataset_train.rename(columns=newnames, inplace=True)
-dataset_predict.rename(columns=newnames, inplace=True)
-
+X.rename(columns=newnames, inplace=True)
+X1.rename(columns=newnames, inplace=True)
 
 def preprocess(dataset):
     #dataset = dataset[newnames]
@@ -37,8 +34,6 @@ def preprocess(dataset):
     p_profession(dataset)
     p_degree(dataset)
     p_hair(dataset)
-#    p_size(dataset)
-    p_crime(dataset)
     p_house(dataset)
     p_workexp(dataset)
     p_satisfaction(dataset)
@@ -48,113 +43,108 @@ def preprocess(dataset):
 
     
 #merging Gender
-def p_gender(dataset_train):
-    #dataset_train.Gender = dataset_train.Gender.replace( 'other' ,'missing_gender')
-    dataset_train.Gender = dataset_train.Gender.replace( 'f' ,'female')
-    dataset_train.Gender = dataset_train.Gender.fillna(dataset_train.Gender.mode()[0])
-    #dataset_train.Gender = dataset_train.Gender.replace( 'unknown' ,'missing_gender')
-    #dataset_train.Gender = dataset_train.Gender.replace( '0' ,dataset_train.Gender.mode()[0])
+def p_gender(X):
+    X["Gender"] = X["Gender"].astype('category')
+    X["Gender_cat"] = X["Gender"].cat.codes
+    X.replace(X["Gender"],X["Gender_cat"])
+    del X["Gender"]
+    X.Gender = X.Gender_cat.replace( 'other' ,'missing_gender')
+    X.Gender = X.Gender_cat.replace( 'f' ,'female')
+    X.Gender = X.Gender_cat.replace( np.NaN ,'missing_gender') 
+    X.Gender = X.Gender_cat.replace( 'unknown' ,'missing_gender')
+    X.Gender = X.Gender_cat.replace( '0' ,'missing_gender')
 
-#removing age more than 100
-#dataset_train = dataset_train[dataset_train['Age'] <= 100]
-def p_age(dataset_train):
-    age_median = dataset_train['Age'].median()
-    dataset_train['Age'].replace(np.nan, age_median, inplace=True)
-#    dataset_train['Age'] = (dataset_train['Age'] * dataset_train['Age']) ** (0.5)
+
+def p_age(X):
+    age_median = X['Age'].median()
+    X['Age'].replace(np.nan, age_median, inplace=True)
+    #X['Age'] = (X['Age'] * X['Age']) ** (0.5)
     
-def p_year(dataset_train):
+def p_year(X):
     #Replacing missing_year year with median
-    #p=dataset_train["Year"].mean()
-    dataset_train.Year = dataset_train.Year.replace(np.NaN ,dataset_train.Year.median())
+    #p=X["Year"].mean()
+    X.Year = X.Year.replace( np.NaN ,X.Year.median())
     
-def p_profession(dataset_train):
+def p_profession(X):
     # Transform profession data into categories codes
-#    dataset_train["Profession"] = dataset_train["Profession"].astype('category')
-#    dataset_train["profession_cat"] = dataset_train["Profession"].cat.codes
-#    dataset_train.replace(dataset_train["Profession"],dataset_train["profession_cat"])
-#    del dataset_train["Profession"]
-    dataset_train.Profession = dataset_train.Profession.replace(np.NaN ,dataset_train.Profession.mode()[0])
-    #dataset_train.profession_cat = dataset_train.profession_cat.replace( '0' ,dataset_train.profession_cat.mode()[0])
+    X["Profession"] = X["Profession"].astype('category')
+    X["profession_cat"] = X["Profession"].cat.codes
+    X.replace(X["Profession"],X["profession_cat"])
+    del X["Profession"]
+    X.profession_cat = X.profession_cat.replace( '0' ,np.NaN)
+    X.profession_cat = X.profession_cat.replace( np.NaN ,"missing_prof")
     
-def p_degree(dataset_train):
+    
+def p_degree(X):
     #merging University Degree
-    dataset_train.Degree = dataset_train.Degree.replace( np.NaN ,dataset_train.Degree.mode()[0])
-    dataset_train.Degree = dataset_train.Degree.replace( '0' ,dataset_train.Degree.mode()[0])
+    X["Degree"] = X["Degree"].astype('category')
+    X["Degree_cat"] = X["Degree"].cat.codes
+    X.replace(X["Degree"],X["Degree_cat"])
+    del X["Degree"]
+    X.Degree_cat = X.Degree_cat.replace( '0' ,np.NaN)
+    X.Degree_cat = X.Degree_cat.replace( np.NaN ,"missing_degree")
     
-def p_hair(dataset_train):
+    
+def p_hair(X):
     #merging Hair Colour
-    dataset_train.Hair = dataset_train.Hair.replace( np.NaN ,dataset_train.Hair.mode()[0])
-    dataset_train.Hair = dataset_train.Hair.replace( '0' ,dataset_train.Hair.mode()[0])
+    X.Hair = X.Hair.replace( '0' ,np.NaN)
+    X.Hair = X.Hair.replace( np.NaN ,"missing_hair")
 
-#def p_size(dataset_train):
-#    dataset_train['Small City'] = dataset_train.Size <= 2500
-
-def p_house(dataset_train):
+def p_house(X):
     #merging Housing Situation
-    dataset_train.House = dataset_train.House.replace( np.NaN ,dataset_train.House.mode()[0])
-    #dataset_train.House = dataset_train.House.replace( 'nA' ,dataset_train.House.mode()[0])
-    #dataset_train.House = dataset_train.House.replace( '0' ,dataset_train.House.mode()[0])
-  
-def p_crime(dataset_train):
-    dataset_train['No Crime'] = dataset_train.Crime == 0
-
+    X.House = X.House.replace( 'nA' ,np.NaN)
+    X.House = X.House.replace( '0' ,np.NaN)
+    X.House = X.House.replace( np.NaN ,"missing_house")
     
-def p_workexp(dataset_train):
+def p_workexp(X):
     #merging work experience
-    dataset_train.WorkExp = dataset_train.WorkExp.replace( '#NUM!', np.NaN)
-    dataset_train.WorkExp = dataset_train.WorkExp.replace( np.NaN ,dataset_train.WorkExp.median())
+    X.WorkExp = X.WorkExp.replace( '#NUM!', np.NaN)
+    X.WorkExp = X.WorkExp.replace( np.NaN ,X.WorkExp.median())
     #the datatype was object so converted to float
-    dataset_train['WorkExp'].astype(float)
-    dataset_train.WorkExp.dtype                                 
+    X['WorkExp'].astype(float)
+    X.WorkExp.dtype                                 
        
-def p_satisfaction(dataset_train):                                                
-    #merging satis   
-    dataset_train.Satisfaction.replace( np.NaN ,dataset_train.Satisfaction.mode()[0])
+def p_satisfaction(X): 
+                                               
+    X.Satisfaction.replace( np.NaN ,'missing_Satis')
      
-def p_addIncome(dataset_train):   
+def p_addIncome(X):   
     #Extra income to be changed to int from string
-    dataset_train.Additional_income = dataset_train.Additional_income.astype(str).str.rstrip(' EUR')
-    dataset_train.Additional_income.dtype
+    X.Additional_income = X.Additional_income.astype(str).str.rstrip(' EUR')
+    X.Additional_income.dtype
     #Now converting this from string to int
-    dataset_train['Additional_income'] = dataset_train['Additional_income'].astype(float)
+    X['Additional_income'] = X['Additional_income'].astype(float)
 
 
-dataset_train = preprocess(dataset_train)
-dataset_predict = preprocess(dataset_predict)
+X = preprocess(X)
+X1 = preprocess(X1)
+
 
 from category_encoders import TargetEncoder
-y = dataset_train.Income
-X=dataset_train.drop('Income', 1)
+y = X.Income
+y = y - X['Additional_income']
+X = X.drop('Income', 1)
+X = X.drop('Instance', 1)
+X = X.drop('Additional_income',1)
+
+y1 = X1.Income
+y1 = y1 - X1['Additional_income']
+X1 = X1.drop('Income', 1)
+X1 = X1.drop('Instance', 1)
+temp = X1['Additional_income']
+X1 = X1.drop('Additional_income',1)
+
 t1 = TargetEncoder()
 t1.fit(X,y)
 X = t1.transform(X)
-y1 = dataset_predict.Income
-X1=dataset_predict.drop('Income', 1)
 X1 = t1.transform(X1)
-
-
-#Testing the dataset
-
-
 
 mm_scaler = preprocessing.MinMaxScaler()
 X = mm_scaler.fit_transform(X)
 X1 = mm_scaler.transform(X1)
 
 from sklearn.model_selection import train_test_split 
-Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.12, random_state=0)
-
-#from sklearn.linear_model import BayesianRidge
-#regressor = BayesianRidge()
-#reg = regressor.fit(X, y)
-##fitResult = regressor.fit(Xtrain, Ytrain)
-#YPred = regressor.predict(dataset_predict)
-
-#from sklearn.ensemble import RandomForestRegressor
-#regressor = RandomForestRegressor()
-#fitResult = regressor.fit(Xtrain, Ytrain)
-#YPred1 = fitResult.predict(Xtest)
-#YPred = fitResult.predict(X1)
+Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, y, test_size=0.10, random_state=0)
 
 import lightgbm as lgb
 X_0 = lgb.Dataset(Xtrain, label = Ytrain)
@@ -162,29 +152,21 @@ X_test1 = lgb.Dataset(Xtest, label = Ytest)
 
 params = {}
 params['learning_rate'] = 0.001
-params['boosting_type'] = 'rf'
-#params['objective'] = 'binary'
-#params['metric'] = 'binary_logloss'
+params['boosting_type'] = 'gbdt'
 params['metric'] = 'mae'
 params['verbosity'] = -1
 params['bagging_seed'] = 11 
-params['bagging_freq'] = 10
-params['bagging_fraction'] = 0.5
 params['max_depth'] = 20
 
 
-X_1 = lgb.train(params, X_0, 100000, valid_sets = [X_0,X_test1], early_stopping_rounds=500 )
+LGB1 = lgb.train(params, X_0, 100000, valid_sets = [X_0,X_test1], early_stopping_rounds=400 )
 
-YPred1 = X_1.predict(Xtest)
-YPred = X_1.predict(X1)
+YPred_lgb = LGB1.predict(Xtest)
 
-#learningTest = pd.DataFrame({'Predicted': YPredTest, 'Actual': Ytest })
-#np.sqrt(metrics.mean_squared_error(Ytest, YPredTest))
+final_pred = LGB1.predict(X1)
 
-print('Mean Absolute Error:', metrics.mean_absolute_error(Ytest, YPred1))
-print('Mean Squared Error:', metrics.mean_squared_error(Ytest, YPred1))
-print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(Ytest, YPred1)))
+final_pred = final_pred + temp
 
-data2 = pd.read_csv('tcd-ml-1920-group-income-submission.csv')
-data2['Total Yearly Income [EUR]'] = YPred
-data2.to_csv('Output.csv', index = False)
+data = pd.read_csv('tcd-ml-1920-group-income-submission.csv')
+data['Total Yearly Income [EUR]'] = final_pred
+data.to_csv('Final.csv', index = False)
